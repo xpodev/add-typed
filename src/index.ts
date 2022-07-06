@@ -3,10 +3,12 @@
 import https from 'https';
 import fs from 'fs';
 import { exec, execSync } from 'child_process';
+import * as lockfile from '@yarnpkg/lockfile';
 
 import * as colors from './colors';
 
 import type { IncomingMessage } from 'http';
+import type { AnyObject, Package } from './types';
 
 const [, , ...args] = process.argv;
 
@@ -26,27 +28,29 @@ function npmOrYarn() {
 
 const packageManager = npmOrYarn();
 
-let saveDev = args.findIndex(arg => ['--save-dev', '-D'].includes(arg));
-if (saveDev > -1) {
-    args.splice(saveDev, 1);
-    saveDev = 1;
+// Change to production
+let isProduction = args.findIndex(arg => ['--prod', '--production'].includes(arg));
+if (isProduction > -1) {
+    args.splice(isProduction, 1);
+    isProduction = 1;
 } else {
-    saveDev = 0;
+    isProduction = 0;
 }
 
 const terminalArgs = [];
-const dependencies = [];
+const dependencies: Package[] = [];
 
 for (const arg of args) {
     if (arg.startsWith('-')) {
         terminalArgs.push(arg);
     } else {
-        dependencies.push(arg);
+        const version = arg.match(/@[^@]+$/)?.[0].replace('@', '') ?? '';
+        const packageName = arg.replace(`@${version}`, '');
+        dependencies.push({ [packageName]: version });
     }
 }
 
 const packageSyntax = `${packageManager} ${packageManager === 'npm' ? 'install' : 'add'} {package} ${terminalArgs.join(' ')}`;
-const typesSyntax = `${packageManager} ${packageManager === 'npm' ? 'install' : 'add'} @types/{package} --save-dev`;
 
 function httpsGet(options: string | https.RequestOptions | URL) {
     return new Promise<IncomingMessage>((resolve, reject) => {
@@ -78,21 +82,25 @@ function terminalSpinner() {
     };
 }
 
+function splitObject(obj: AnyObject) {
+    const result: AnyObject[] = [];
+    for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            result.push({ [key]: obj[key] });
+        }
+    }
+    return result;
+}
 
-function installPackage(packageName: string) {
+function installPackage(packageName: string, version?: string) {
     return new Promise<boolean>((resolve, reject) => {
-        const currentCmd = packageSyntax.replace('{package}', packageName);
+        const currentCmd = packageSyntax.replace('{package}', packageName + (version ? `@${version}` : ''));
         process.stdout.write(`> ${currentCmd} `);
         const spinner = terminalSpinner();
 
         const currentProcess = exec(currentCmd);
 
-        let stdout = '';
         let stderr = '';
-
-        currentProcess.stdout.on('data', (data) => {
-            stdout += data;
-        });
 
         currentProcess.stderr.on('data', (data) => {
             stderr += data;
@@ -101,7 +109,7 @@ function installPackage(packageName: string) {
         currentProcess.on('exit', async (code, signal) => {
             spinner.stop();
 
-            if(signal == 'SIGINT') {
+            if (signal == 'SIGINT') {
                 console.log('\n');
                 console.log('Aborted'.style(colors.FgRed, colors.Bright));
                 process.exit(code);
@@ -120,18 +128,23 @@ function installPackage(packageName: string) {
 }
 
 async function installTypes(packageName: string) {
-    if (packageName.startsWith("@")) {
+    if(packageName.startsWith('@types/')) {
         return;
+    }
+
+    if (packageName.startsWith("@")) {
+        packageName = packageName.substring(1).split("/").join("__");
     }
 
     if ((await httpsGet(`https://registry.npmjs.org/@types/${packageName}`)).statusCode === 200) {
         return installPackage(`@types/${packageName}`);
     } else {
-        console.log(`There is no types package for ${packageName}, skipping`);
+        console.log(`Types package for ${packageName} does not exist, skipping`.style(colors.FgYellow));
     }
 }
 
 async function install() {
+
     if (args.length == 0) {
         const packageJson = readPackageJson();
         if (!packageJson) {
@@ -139,14 +152,16 @@ async function install() {
             return;
         }
 
-        dependencies.push(...Object.keys(packageJson.dependencies ?? {}));
-        if (saveDev) {
-            dependencies.push(...Object.keys(packageJson.devDependencies ?? {}));
+        dependencies.push(...splitObject(packageJson.dependencies ?? {}));
+        if (!isProduction) {
+            dependencies.push(...splitObject(packageJson.devDependencies ?? {}));
         }
+
     }
 
-    for (const arg of args) {
-        await installPackage(arg) && await installTypes(arg);
+    for (const dependency of dependencies) {
+        const [packageName, version] = Object.entries(dependency)[0];
+        await installPackage(packageName, version) && await installTypes(packageName);
     }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "addt",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "",
   "main": "bin/index.js",
   "scripts": {
@@ -16,7 +16,11 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^18.0.3",
-    "typescript": "^4.7.4"
+    "@types/node": "16",
+    "@types/yarnpkg__lockfile": "1.1.5",
+    "typescript": "4.7.4"
+  },
+  "dependencies": {
+    "@yarnpkg/lockfile": "1.1.0"
   }
 }
