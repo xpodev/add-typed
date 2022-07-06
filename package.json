@@ -1,0 +1,22 @@
+{
+  "name": "addt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bin/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsc-watch --onSuccess \"npm run install-package\"",
+    "watch": "tsc -w",
+    "install-package": "npm i . -g && npm link"
+  },
+  "bin": {
+    "addt": "./bin/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^18.0.3",
+    "typescript": "^4.7.4"
+  }
+}
