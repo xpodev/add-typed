@@ -39,5 +39,4 @@ yarn add typescript --save-dev
 ```
 
 ## Notes
-- The tool will ignore types for packages starts with `@`, that's because I guess it's not possible to install `@types/@org/package`
 - If a package does not have type declarations under the `@types` namespace the types installation will be skipped. 
