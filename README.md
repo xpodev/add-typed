@@ -5,12 +5,12 @@ If you're tired of installing a package and then installing the types for the pa
 ## Installation
 npm
 ```
-npm i addt --save-dev
+npm i addt -g
 ```
  
 yarn
 ```
-yarn add --dev
+yarn global add
 ```
 
 ## Usage
@@ -29,7 +29,7 @@ Will be resolved to
 ```
 npm install typescript --save-dev
 ```
-or in yarn (which will cause a failure because `--save-dev` is undefined in yarn)
+or in yarn (which will cause a failure because `--save-dev` is not valid in yarn)
 ```
 yarn add typescript --save-dev
 ```
