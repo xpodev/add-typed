@@ -10,7 +10,7 @@ npm i addt -g
  
 yarn
 ```
-yarn global add
+yarn global add addt
 ```
 
 ## Usage
