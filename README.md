@@ -18,6 +18,10 @@ Installing package[s] with types
 ```
 addt <package_name> [...<package_name>]
 ```
+Installing all packages in package.json with their tyes (see https://github.com/xpodev/add-typed/issues/1)
+```
+addt
+```
 
 ### Arguments
 The tool will pass any argument starts with `-` to the `npm` / `yarn` command, so make sure you use the correct arguments
