@@ -18,6 +18,10 @@ Installing package[s] with types
 ```
 addt <package_name> [...<package_name>]
 ```
+Installing all packages in package.json with their tyes (see https://github.com/xpodev/add-typed/issues/1)
+```
+addt
+```
 
 ### Arguments
 The tool will pass any argument starts with `-` to the `npm` / `yarn` command, so make sure you use the correct arguments
@@ -35,5 +39,4 @@ yarn add typescript --save-dev
 ```
 
 ## Notes
-- The tool will ignore types for packages starts with `@`, that's because I guess it's not possible to install `@types/@org/package`
 - If a package does not have type declarations under the `@types` namespace the types installation will be skipped. 
