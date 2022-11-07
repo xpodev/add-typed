@@ -1,13 +1,13 @@
 {
   "name": "addt",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "main": "bin/index.js",
   "scripts": {
     "test": "echo \"No tests specified\"",
     "dev": "tsc-watch --onSuccess \"npm run install-package\"",
     "watch": "tsc -w",
-    "install-package": "npm i . -g && npm link"
+    "install-package": "tsc && npm i . -g && npm link"
   },
   "bin": {
     "addt": "./bin/index.js"
@@ -16,7 +16,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "16",
+    "@types/node": "16.11.43",
     "@types/yarnpkg__lockfile": "1.1.5",
     "typescript": "4.7.4"
   },

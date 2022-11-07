@@ -21,7 +21,7 @@ function npmOrYarn() {
             execSync('npm --version', { stdio: 'ignore' });
             return 'npm';
         } catch (e) {
-            throw new Error('npm or yarn not found');
+            throw new Error('Neither yarn nor npm are installed');
         }
     }
 }
@@ -50,7 +50,7 @@ for (const arg of args) {
     }
 }
 
-const packageSyntax = `${packageManager} ${packageManager === 'npm' ? 'install' : 'add'} {package} ${terminalArgs.join(' ')}`;
+const packageSyntax = `${packageManager} ${packageManager === 'npm' ? 'install' : 'add'} {package} ${terminalArgs.map(arg => arg + ' ')}`;
 
 function httpsGet(options: string | https.RequestOptions | URL) {
     return new Promise<IncomingMessage>((resolve, reject) => {
@@ -63,21 +63,24 @@ function httpsGet(options: string | https.RequestOptions | URL) {
 }
 
 function readPackageJson() {
-    return JSON.parse(fs.readFileSync('package.json', 'utf8'));
+    if(fs.existsSync('package.json')) {
+        return JSON.parse(fs.readFileSync('package.json', 'utf8'));
+    }
 }
 
 function terminalSpinner() {
     let i = 1;
-    const spinnerChars = ['|', '/', '-', '\\'];
-    process.stdout.write('\b' + spinnerChars[0]);
+    const spinnerChars = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'.split('').map(char => char + ' ');
+    const bis = '\b'.repeat(spinnerChars[0].length);
+    process.stdout.write(`${spinnerChars[0].style(colors.FgBlue, colors.Bright)}`);
     const interval = setInterval(() => {
-        process.stdout.write(`\b${spinnerChars[i]}`);
+        process.stdout.write(`${bis}${spinnerChars[i].style(colors.FgBlue, colors.Bright)}`);
         i = (i + 1) % spinnerChars.length;
     }, 100);
     return {
         stop: () => {
             clearInterval(interval);
-            process.stdout.write('\b');
+            process.stdout.write(bis);
         }
     };
 }
@@ -92,9 +95,9 @@ function splitObject(obj: AnyObject) {
     return result;
 }
 
-function installPackage(packageName: string, version?: string) {
+function installPackage(packageName: string, version?: string, dev = false) {
     return new Promise<boolean>((resolve, reject) => {
-        const currentCmd = packageSyntax.replace('{package}', packageName + (version ? `@${version}` : ''));
+        const currentCmd = packageSyntax.replace('{package}', packageName + (version ? `@${version}` : '')) + (dev ? (packageManager === 'npm' ? '--save-dev' : '--dev') : '');
         process.stdout.write(`> ${currentCmd} `);
         const spinner = terminalSpinner();
 
@@ -137,7 +140,7 @@ async function installTypes(packageName: string) {
     }
 
     if ((await httpsGet(`https://registry.npmjs.org/@types/${packageName}`)).statusCode === 200) {
-        return installPackage(`@types/${packageName}`);
+        return installPackage(`@types/${packageName}`, '', true);
     } else {
         console.log(`Types package for ${packageName} does not exist, skipping`.style(colors.FgYellow));
     }
@@ -148,7 +151,7 @@ async function install() {
     if (args.length == 0) {
         const packageJson = readPackageJson();
         if (!packageJson) {
-            console.error('package.json not found'.style(colors.FgRed, colors.Bright));
+            console.error('Could not find package.json'.style(colors.FgRed, colors.Bright));
             return;
         }
 

@@ -105,3 +105,6 @@ dist
 
 # Bin
 bin
+
+# Local History
+.lh
