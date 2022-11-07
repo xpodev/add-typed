@@ -3,14 +3,13 @@
 import https from 'https';
 import fs from 'fs';
 import { exec, execSync } from 'child_process';
-import * as lockfile from '@yarnpkg/lockfile';
 
 import * as colors from './colors';
 
 import type { IncomingMessage } from 'http';
 import type { AnyObject, Package } from './types';
-
-const [, , ...args] = process.argv;
+import * as terminal from './args-parser';
+terminal.config();
 
 function npmOrYarn() {
     try {
@@ -29,28 +28,9 @@ function npmOrYarn() {
 const packageManager = npmOrYarn();
 
 // Change to production
-let isProduction = args.findIndex(arg => ['--prod', '--production'].includes(arg));
-if (isProduction > -1) {
-    args.splice(isProduction, 1);
-    isProduction = 1;
-} else {
-    isProduction = 0;
-}
+const isProduction = (terminal.args.prod || terminal.args.production) && true;
 
-const terminalArgs = [];
-const dependencies: Package[] = [];
-
-for (const arg of args) {
-    if (arg.startsWith('-')) {
-        terminalArgs.push(arg);
-    } else {
-        const version = arg.match(/@[^@]+$/)?.[0].replace('@', '') ?? '';
-        const packageName = arg.replace(`@${version}`, '');
-        dependencies.push({ [packageName]: version });
-    }
-}
-
-const packageSyntax = `${packageManager} ${packageManager === 'npm' ? 'install' : 'add'} {package} ${terminalArgs.map(arg => arg + ' ')}`;
+const packageSyntax = `${packageManager} ${packageManager === 'npm' ? 'install' : 'add'} {package} ${terminal.commands.map(arg => arg + ' ')}`;
 
 function httpsGet(options: string | https.RequestOptions | URL) {
     return new Promise<IncomingMessage>((resolve, reject) => {
@@ -88,7 +68,7 @@ function terminalSpinner() {
 function splitObject(obj: AnyObject) {
     const result: AnyObject[] = [];
     for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
             result.push({ [key]: obj[key] });
         }
     }
@@ -96,7 +76,7 @@ function splitObject(obj: AnyObject) {
 }
 
 function installPackage(packageName: string, version?: string, dev = false) {
-    return new Promise<boolean>((resolve, reject) => {
+    return new Promise<boolean>((resolve, _reject) => {
         const currentCmd = packageSyntax.replace('{package}', packageName + (version ? `@${version}` : '')) + (dev ? (packageManager === 'npm' ? '--save-dev' : '--dev') : '');
         process.stdout.write(`> ${currentCmd} `);
         const spinner = terminalSpinner();
@@ -147,8 +127,8 @@ async function installTypes(packageName: string) {
 }
 
 async function install() {
-
-    if (args.length == 0) {
+    const dependencies: Package[] = [];
+    if (terminal.commands.length == 0) {
         const packageJson = readPackageJson();
         if (!packageJson) {
             console.error('Could not find package.json'.style(colors.FgRed, colors.Bright));
@@ -160,6 +140,12 @@ async function install() {
             dependencies.push(...splitObject(packageJson.devDependencies ?? {}));
         }
 
+    } else {
+        const packageAndVersionRegex = /(?<package>(?:@[a-zA-Z][a-zA-Z0-9]+\/[a-zA-Z][a-zA-Z0-9]+)|[a-zA-Z][a-zA-Z0-9]+)(?:@?(?<version>.*))?/g;
+        dependencies.push(...terminal.commands.map(command => {
+            const {groups} = packageAndVersionRegex.exec(command);
+            return { [groups.package]: groups.version ?? '' };
+        }));
     }
 
     for (const dependency of dependencies) {

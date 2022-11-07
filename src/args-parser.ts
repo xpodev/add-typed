@@ -19,8 +19,8 @@ const parseArgument = (arg: any) => {
 
 const camelize = (s: string) => s.replace(/-./g, x => x[1].toUpperCase());
 
-export const appArgs: Record<string, any> = {};
-export const appCommands = [] as string[];
+export const args: Record<string, any> = {};
+export const commands = [] as string[];
 
 export function config() {
   for (let i = 2; i < process.argv.length; i++) {
@@ -28,18 +28,18 @@ export function config() {
       if (arg.startsWith("--")) {
           const [key, value] = arg.split("=");
           if (key && value) {
-              appArgs[camelize(key.slice(2))] = parseArgument(value);
+              args[camelize(key.slice(2))] = parseArgument(value);
           } else {
               const nextArg = process.argv[i + 1];
               if (nextArg) {
                   if (nextArg.startsWith("-")) {
-                      appArgs[camelize(key.slice(2))] = true;
+                      args[camelize(key.slice(2))] = true;
                   } else {
-                      appArgs[camelize(key.slice(2))] = parseArgument(nextArg);
+                      args[camelize(key.slice(2))] = parseArgument(nextArg);
                       i++;
                   }
               } else {
-                  appArgs[camelize(key.slice(2))] = true;
+                  args[camelize(key.slice(2))] = true;
               }
           }
           continue;
@@ -54,23 +54,23 @@ export function config() {
                   const nextArg = process.argv[i + 1];
                   if (nextArg) {
                       if (nextArg.startsWith("-")) {
-                          appArgs[flags[0]] = true;
+                          args[flags[0]] = true;
                       } else {
-                          appArgs[flags[0]] = parseArgument(nextArg);
+                          args[flags[0]] = parseArgument(nextArg);
                           i++;
                       }
                   } else {
-                      appArgs[flags[0]] = true;
+                      args[flags[0]] = true;
                   }
               } else {
                   for (const flag of flags) {
-                      appArgs[flag] = true;
+                      args[flag] = true;
                   }
               }
           }
           continue;
       }
 
-      appCommands.push(arg);
+      commands.push(arg);
   }
 }
