@@ -1,13 +1,13 @@
 {
   "name": "addt",
-  "version": "1.0.3",
-  "description": "",
+  "version": "1.0.4",
+  "description": "Addt is a simple command line tool to add packages and their types in one command.",
   "main": "bin/index.js",
   "scripts": {
     "test": "echo \"No tests specified\"",
     "dev": "tsc-watch --onSuccess \"npm run install-package\"",
     "watch": "tsc -w",
-    "install-package": "tsc && npm i . -g && npm link"
+    "install-package": "npm i . -g && npm link"
   },
   "bin": {
     "addt": "./bin/index.js"
