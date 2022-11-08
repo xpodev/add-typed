@@ -148,6 +148,7 @@ async function installTypes(packageName: string, version?: string) {
 
 async function install() {
     const dependencies: Package[] = [];
+    const devDependencies: Package[] = [];
     if (terminal.commands.length == 0) {
         const packageJson = readPackageJson();
         if (!packageJson) {
@@ -157,7 +158,7 @@ async function install() {
 
         dependencies.push(...splitObject(packageJson.dependencies ?? {}));
         if (!isProduction) {
-            dependencies.push(...splitObject(packageJson.devDependencies ?? {}));
+            devDependencies.push(...splitObject(packageJson.devDependencies ?? {}));
         }
 
     } else {
@@ -171,6 +172,11 @@ async function install() {
     for (const dependency of dependencies) {
         const [packageName, version] = Object.entries(dependency)[0];
         await installPackage(packageName, version) && await installTypes(packageName, version);
+    }
+
+    for (const dependency of devDependencies) {
+        const [packageName, version] = Object.entries(dependency)[0];
+        await installPackage(packageName, version, true) && await installTypes(packageName, version);
     }
 }
 
