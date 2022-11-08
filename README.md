@@ -22,6 +22,10 @@ Installing all packages in package.json with their tyes (see https://github.com/
 ```
 addt
 ```
+Also works with `npx`
+```
+npx addt <package_name> [...<package_name>]
+```
 
 ### Arguments
 The tool will pass any argument starts with `-` to the `npm` / `yarn` command, so make sure you use the correct arguments
