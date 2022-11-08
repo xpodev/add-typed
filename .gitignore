@@ -108,3 +108,6 @@ bin
 
 # Local History
 .lh
+
+# VS Code
+.vscode
