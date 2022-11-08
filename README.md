@@ -1,6 +1,6 @@
 # Add Typed
 
-If you're tired of installing a package and then installing the types for the package in a seperate command, this is for you.
+If you're tired of installing a package and then installing the types for the package in a separate command, this is for you.
 
 ## Installation
 npm
@@ -18,7 +18,7 @@ Installing package[s] with types
 ```
 addt <package_name> [...<package_name>]
 ```
-Installing all packages in package.json with their tyes (see https://github.com/xpodev/add-typed/issues/1)
+Installing all packages in package.json with their types (see https://github.com/xpodev/add-typed/issues/1)
 ```
 addt
 ```
