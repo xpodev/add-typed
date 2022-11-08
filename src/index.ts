@@ -32,14 +32,33 @@ const isProduction = (terminal.args.prod || terminal.args.production) && true;
 
 const packageSyntax = `${packageManager} ${packageManager === 'npm' ? 'install' : 'add'} {package} ${terminal.commands.map(arg => arg + ' ')}`;
 
-function httpsGet(options: string | https.RequestOptions | URL) {
-    return new Promise<IncomingMessage>((resolve, reject) => {
-        https.get(options, (res) => {
-            resolve(res);
-        }).on('error', (err) => {
-            reject(err);
-        }).end();
-    });
+function httpsRequest(options: https.RequestOptions | string | URL): Promise<IncomingMessage>;
+function httpsRequest(url: string | URL, options: https.RequestOptions): Promise<IncomingMessage>;
+function httpsRequest(url: https.RequestOptions | string | URL, options?: https.RequestOptions) {
+    if (typeof url === 'string') {
+        return new Promise<IncomingMessage>((resolve, reject) => {
+            https.request(url, options, (res) => {
+                resolve(res);
+            }).on('error', (err) => {
+                reject(err);
+            }).end();
+        });
+    } else {
+        return new Promise<IncomingMessage>((resolve, reject) => {
+            https.request(url, (res) => {
+                resolve(res);
+            }).on('error', (err) => {
+                reject(err);
+            }).end();
+        });
+    }
+
+}
+
+async function packageExists(name: string, version?: string) {
+    version = version && version.match(/([\d+.?]+)/g)?.[0];
+    const url = `https://registry.${packageManager === 'yarn' ? 'yarnpkg.com' : 'npmjs.org'}/${name}${version ? `/${version}` : ''}`;
+    return (await httpsRequest(url, { method: 'HEAD'})).statusCode === 200;
 }
 
 function readPackageJson() {
@@ -110,7 +129,7 @@ function installPackage(packageName: string, version?: string, dev = false) {
     });
 }
 
-async function installTypes(packageName: string) {
+async function installTypes(packageName: string, version?: string) {
     if(packageName.startsWith('@types/')) {
         return;
     }
@@ -119,10 +138,11 @@ async function installTypes(packageName: string) {
         packageName = packageName.substring(1).split("/").join("__");
     }
 
-    if ((await httpsGet(`https://registry.npmjs.org/@types/${packageName}`)).statusCode === 200) {
-        return installPackage(`@types/${packageName}`, '', true);
+    const typesName = `@types/${packageName}`;
+    if ((await packageExists(typesName, version))) {
+        return installPackage(typesName, version, true);
     } else {
-        console.log(`Types package for ${packageName} does not exist, skipping`.style(colors.FgYellow));
+        console.log(`The types package for ${packageName}${version ? `@${version}` : ''} does not exist, skipping`.style(colors.FgYellow));
     }
 }
 
@@ -150,7 +170,7 @@ async function install() {
 
     for (const dependency of dependencies) {
         const [packageName, version] = Object.entries(dependency)[0];
-        await installPackage(packageName, version) && await installTypes(packageName);
+        await installPackage(packageName, version) && await installTypes(packageName, version);
     }
 }
 
