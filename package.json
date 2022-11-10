@@ -30,12 +30,12 @@
     "typescript": "4.7.4"
   },
   "dependencies": {},
-  "homepage": "https://github.com/xpodev/addt#readme",
+  "homepage": "https://github.com/xpodev/add-typed#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/xpodev/addt.git"
+    "url": "https://github.com/xpodev/add-typed.git"
   },
   "bugs": {
-    "url": "https://github.com/xpodev/addt/issues"
+    "url": "https://github.com/xpodev/add-typed/issues"
   }
 }
