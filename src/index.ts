@@ -170,10 +170,11 @@ async function install() {
         }
 
     } else {
-        const packageAndVersionRegex = /(?<package>(?:@[a-zA-Z][a-zA-Z0-9]+\/[a-zA-Z][a-zA-Z0-9]+)|[a-zA-Z][a-zA-Z0-9]+)(?:@?(?<version>.*))?/g;
+        const packageParts = /^(?<fullName>(@(?<scope>.+)\/)?(?<name>[a-z0-9][.\-_a-z0-9]*))(?:@(?<version>[~^]?(?:[\dvx*]+(?:[-.](?:[\dx*]+|alpha|beta))*)))?/g;
+        // const packageAndVersionRegex = /(?<package>(?:@[a-zA-Z][a-zA-Z0-9]+\/[a-zA-Z][a-zA-Z0-9.]+)|[a-zA-Z][a-zA-Z0-9.]+)(?:@(?<version>.*))?/g;
         dependencies.push(...terminal.commands.map(command => {
-            const { groups } = packageAndVersionRegex.exec(command);
-            return { [groups.package]: groups.version ?? '' };
+            const { groups } = packageParts.exec(command);
+            return { [groups.fullName]: groups.version ?? '' };
         }));
     }
 
