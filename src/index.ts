@@ -28,9 +28,15 @@ function npmOrYarn() {
 const packageManager = npmOrYarn();
 
 // Change to production
-const isProduction = (terminal.args.prod || terminal.args.production) && true;
+const isProduction = (terminal.args.parsed.prod || terminal.args.parsed.production) && true;
 
-const packageSyntax = `${packageManager} ${packageManager === 'npm' ? 'install' : 'add'} {package} ${terminal.commands.map(arg => arg + ' ')}`;
+const packageSyntax = [
+    packageManager,
+    packageManager === 'npm' ? 'install' : 'add',
+    '', // Package name
+    '', // Dev
+    terminal.args.raw
+];
 
 function httpsRequest(options: https.RequestOptions | string | URL): Promise<IncomingMessage>;
 function httpsRequest(url: string | URL, options: https.RequestOptions): Promise<IncomingMessage>;
@@ -58,11 +64,11 @@ function httpsRequest(url: https.RequestOptions | string | URL, options?: https.
 async function packageExists(name: string, version?: string) {
     version = version && version.match(/([\d+.?]+)/g)?.[0];
     const url = `https://registry.${packageManager === 'yarn' ? 'yarnpkg.com' : 'npmjs.org'}/${name}${version ? `/${version}` : ''}`;
-    return (await httpsRequest(url, { method: 'HEAD'})).statusCode === 200;
+    return (await httpsRequest(url, { method: 'HEAD' })).statusCode === 200;
 }
 
 function readPackageJson() {
-    if(fs.existsSync('package.json')) {
+    if (fs.existsSync('package.json')) {
         return JSON.parse(fs.readFileSync('package.json', 'utf8'));
     }
 }
@@ -96,7 +102,9 @@ function splitObject(obj: AnyObject) {
 
 function installPackage(packageName: string, version?: string, dev = false) {
     return new Promise<boolean>((resolve, _reject) => {
-        const currentCmd = packageSyntax.replace('{package}', packageName + (version ? `@${version}` : '')) + (dev ? (packageManager === 'npm' ? '--save-dev' : '--dev') : '');
+        packageSyntax[2] = `${packageName}${version ? `@${version}` : ''}`;
+        packageSyntax[3] = (dev ? (packageManager === 'npm' ? '--save-dev' : '--dev') : '');
+        const currentCmd = packageSyntax.join(' ');
         process.stdout.write(`> ${currentCmd} `);
         const spinner = terminalSpinner();
 
@@ -130,12 +138,12 @@ function installPackage(packageName: string, version?: string, dev = false) {
 }
 
 async function installTypes(packageName: string, version?: string) {
-    if(packageName.startsWith('@types/')) {
+    if (packageName.startsWith('@types/')) {
         return;
     }
 
-    if (packageName.startsWith("@")) {
-        packageName = packageName.substring(1).split("/").join("__");
+    if (packageName.startsWith('@')) {
+        packageName = packageName.substring(1).split('/').join('__');
     }
 
     const typesName = `@types/${packageName}`;
@@ -164,7 +172,7 @@ async function install() {
     } else {
         const packageAndVersionRegex = /(?<package>(?:@[a-zA-Z][a-zA-Z0-9]+\/[a-zA-Z][a-zA-Z0-9]+)|[a-zA-Z][a-zA-Z0-9]+)(?:@?(?<version>.*))?/g;
         dependencies.push(...terminal.commands.map(command => {
-            const {groups} = packageAndVersionRegex.exec(command);
+            const { groups } = packageAndVersionRegex.exec(command);
             return { [groups.package]: groups.version ?? '' };
         }));
     }
