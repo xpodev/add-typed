@@ -11,32 +11,63 @@ import type { AnyObject, Package } from './types';
 import * as terminal from './args-parser';
 terminal.config();
 
-function npmOrYarn() {
+function checkCommand(command: string) {
     try {
-        execSync('yarn --version', { stdio: 'ignore' });
-        return 'yarn';
+        execSync(`${command}`, { stdio: 'ignore' });
+        return true;
     } catch (e) {
-        try {
-            execSync('npm --version', { stdio: 'ignore' });
-            return 'npm';
-        } catch (e) {
-            throw new Error('Neither yarn nor npm are installed');
-        }
+        return false;
     }
 }
 
-const packageManager = npmOrYarn();
+const packageManagers = {
+    //name: [name, install command, package name, dev flag]
+    npm: {
+        syntax: ['npm', 'install', '', '', terminal.args.raw],
+        registry: 'https://registry.npmjs.org',
+        devFlag: '--save-dev',
+    },
+    yarn: {
+        syntax: ['yarn', 'add', '', '', terminal.args.raw],
+        registry: 'https://registry.yarnpkg.com',
+        devFlag: '--dev',
+    },
+    pnpm: {
+        syntax: ['pnpm', 'add', '', '', terminal.args.raw],
+        registry: 'https://registry.npmjs.org',
+        devFlag: '--save-dev',
+    },
+}
+
+function determinePackageManager() {
+    if(fs.existsSync('yarn.lock')) {
+        return packageManagers.yarn;
+    } else if(fs.existsSync('pnpm-lock.yaml')) {
+        return packageManagers.pnpm;
+    } else if(fs.existsSync('package-lock.json')) {
+        return packageManagers.npm;
+    }
+
+    if(checkCommand('pnpm')) {
+        return packageManagers.pnpm;
+    }
+
+    if(checkCommand('yarn')) {
+        return packageManagers.yarn;
+    }
+
+    if(checkCommand('npm')) {
+        return packageManagers.npm;
+    }
+
+    console.log('I have no idea how you installed this module because you don\'t have any package manager installed!'.style(colors.FgRed, colors.Bright));
+    process.exit(1);
+}
+
+const packageManager = determinePackageManager();
 
 // Change to production
 const isProduction = (terminal.args.parsed.prod || terminal.args.parsed.production) && true;
-
-const packageSyntax = [
-    packageManager,
-    packageManager === 'npm' ? 'install' : 'add',
-    '', // Package name
-    '', // Dev
-    terminal.args.raw
-];
 
 function httpsRequest(options: https.RequestOptions | string | URL): Promise<IncomingMessage>;
 function httpsRequest(url: string | URL, options: https.RequestOptions): Promise<IncomingMessage>;
@@ -63,7 +94,7 @@ function httpsRequest(url: https.RequestOptions | string | URL, options?: https.
 
 async function packageExists(name: string, version?: string) {
     version = version && version.match(/([\d+.?]+)/g)?.[0];
-    const url = `https://registry.${packageManager === 'yarn' ? 'yarnpkg.com' : 'npmjs.org'}/${name}${version ? `/${version}` : ''}`;
+    const url = `${packageManager.registry}/${name}${version ? `/${version}` : ''}`;
     return (await httpsRequest(url, { method: 'HEAD' })).statusCode === 200;
 }
 
@@ -102,8 +133,9 @@ function splitObject(obj: AnyObject) {
 
 function installPackage(packageName: string, version?: string, dev = false) {
     return new Promise<boolean>((resolve, _reject) => {
+        const packageSyntax = [...packageManager.syntax];
         packageSyntax[2] = `${packageName}${version ? `@${version}` : ''}`;
-        packageSyntax[3] = (dev ? (packageManager === 'npm' ? '--save-dev' : '--dev') : '');
+        packageSyntax[3] = (dev ? (packageManager.devFlag) : '');
         const currentCmd = packageSyntax.join(' ');
         process.stdout.write(`> ${currentCmd} `);
         const spinner = terminalSpinner();
